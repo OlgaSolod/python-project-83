@@ -1,0 +1,19 @@
+name: run tests and linter
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poetry install
+        run: curl -sSL https://install.python-poetry.org | python3 -
+      - uses: actions/checkout@v3
+      - run: poetry install
+      - name: Lint
+        run: make lint
+      - name: Code Climate Coverage Action
+        uses: paambaati/codeclimate-action@v3.1.1
+        env:
+          CC_TEST_REPORTER_ID: ${{secrets.CC_TEST_REPORTER_ID}}
+        with:
+          coverageCommand: make test-coverage
+          debug: true
