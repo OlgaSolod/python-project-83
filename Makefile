@@ -13,4 +13,4 @@ lint:
 test-coverage: 
 	poetry run pytest --cov=page_analyzer --cov-report xml
 
-.PHONY: lint test-coverage
+.PHONY: install dev start lint test-coverage
