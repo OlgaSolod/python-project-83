@@ -9,7 +9,6 @@ start:
 	poetry run gunicorn -w 5 -b 0.0.0.0:$(PORT) page_analyzer:app
 
 lint:
-	poetry run flake8 app
-
+	poetry run flake8 page_analyzer
 test-coverage: 
-	poetry run pytest --cov=app --cov-report xml
+	poetry run pytest --cov=page_analyzer--cov-report xml
