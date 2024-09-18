@@ -13,7 +13,7 @@ jobs:
       - name: Lint
         run: make lint
       - name: Code Climate Coverage Action
-        uses: paambaati/codeclimate-action@v3.1.1
+        uses: paambaati/codeclimate-action@v5.0.0
         env:
           CC_TEST_REPORTER_ID: ${{secrets.CC_TEST_REPORTER_ID}}
         with:
