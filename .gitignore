@@ -1,2 +1,7 @@
 __pycache__
-gi.xml
+dist/
+*.pyc
+.venv/
+.coverage
+coverage.xml
+.pytest_cache/
