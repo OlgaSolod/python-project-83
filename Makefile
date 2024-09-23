@@ -11,7 +11,4 @@ start:
 lint:
 	poetry run flake8 page_analyzer
 
-test-coverage: 
-	poetry run pytest --cov=page_analyzer --cov-report xml
-
 .PHONY: install dev start lint
