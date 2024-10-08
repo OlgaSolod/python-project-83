@@ -61,7 +61,6 @@ def urls_post():
 
 @app.get('/urls/<int:id>')
 def url_page(id):
-
     data = get_data_by_id(id)
     if data:
         id, name, created_at = data

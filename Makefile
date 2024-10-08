@@ -1,5 +1,5 @@
 install:
-	poetry install --no-root
+	poetry install
 
 build:
 	./build.sh
