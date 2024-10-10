@@ -31,7 +31,8 @@ def index():
 
 @app.get("/urls")
 def urls_get():
-    urls = get_all_urls()
+    urls = get_all_from_urls()
+    print(urls)
     return render_template(
         'urls.html',
         data=urls
@@ -45,14 +46,13 @@ def urls_post():
         scheme = urlparse(actual_url).scheme
         hostname = urlparse(actual_url).hostname
         url = f"{scheme}://{hostname}"
-        if check_url_in_db(url):
-            url_id = insert_url_in_db(url)
+        if check_url_in_urls(url):
+            url_id = insert_url_in_urls(url)
             flash("Страница успешно добавлена", category='success')
             return redirect(url_for('url_page', id=url_id))
         else:
             flash("Страница уже существует", category='info')
-            url_id = find_id_by_name(url)
-            print(url_id)
+            url_id = find_id_in_urls(url)
             return redirect(url_for('url_page', id=url_id))
     elif not validate_url(actual_url) or len(actual_url) > 255:
         flash("Некорректный URL", category='danger')
@@ -61,24 +61,41 @@ def urls_post():
 
 @app.get('/urls/<int:id>')
 def url_page(id):
-    data = get_data_by_id(id)
-    if data:
-        id, name, created_at = data
+    page = get_data_from_urls(id)
+    checks = find_data_from_url_checks(id)
+    if page:
+        id, name, created_at = page
         return render_template(
-            'url_page.html', name=name, id=id, created_at=created_at
+            'url_page.html',
+            name=name, id=id,
+            created_at=created_at,
+            data=checks
             )
     else:
         return render_template('404.html')
 
 
-def check_url_in_db(url):
+@app.post('/urls/<int:id>/checks')
+def url_check(id):
+    get_url_id_from_url_checks(id)
+    return redirect(url_for('url_page', id=id))
+
+
+def get_url_id_from_url_checks(id):
+    sql = 'insert into url_checks (url_id) values (%s);'
+    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
+        cur.execute(sql, (id,))
+        conn.commit()
+
+
+def check_url_in_urls(url):
     sql = "select * from urls where name = %s;"
     with conn.cursor() as cur:
         cur.execute(sql, (url,))
         return cur.fetchone() is None
 
 
-def insert_url_in_db(url):
+def insert_url_in_urls(url):
     sql = '''insert into urls
             (name) values (%s)
             RETURNING id;'''
@@ -89,22 +106,37 @@ def insert_url_in_db(url):
     return url_id
 
 
-def get_data_by_id(id):
+def get_data_from_urls(id):
     sql = "select id, name, created_at::date from urls where id = %s;"
     with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
         cur.execute(sql, (id,))
         return cur.fetchone()
 
 
-def get_all_urls():
-    sql = "select id, name, created_at::date from urls;"
+def get_all_from_urls():
+    sql = '''select distinct
+                urls.id,
+                (urls.name),
+                checks.created_at::date,
+                checks.status_code
+            from urls
+            left join url_checks as checks on urls.id = checks.url_id
+            order by checks.created_at::date desc;
+            '''
     with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
         cur.execute(sql)
         return cur.fetchall()
 
 
-def find_id_by_name(name):
+def find_id_in_urls(name):
     sql = "select id from urls where name = %s;"
     with conn.cursor() as cur:
         cur.execute(sql, (name,))
         return cur.fetchone()[0]
+
+
+def find_data_from_url_checks(id):
+    sql = "select id, created_at::date from url_checks where url_id = %s;"
+    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
+        cur.execute(sql, (id,))
+        return cur.fetchall()

@@ -40,12 +40,18 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
+        {% if data %}
           {% for item in data %}
-          <td>{{ item.id }}</td>
-          <td>{{item.status_code}}</td>
-          {% endfor %}
+          <tr>
+            <td>{{item.id }}</td>
+            <td>{{item.status_code}}</td>
+            <td>{{item.h1}}</td>
+            <td>{{item.title}}</td>
+            <td>{{item.description}}</td>
+            <td>{{item.created_at}}</td>
         </tr>
+          {% endfor %}
+        {% endif %}
       </tbody>
     </table>
   </div>
