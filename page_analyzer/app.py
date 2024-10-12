@@ -5,7 +5,7 @@ from flask import (
     flash,
     request,
     redirect
-    )
+)
 import psycopg2
 from psycopg2.extras import NamedTupleCursor
 import os
@@ -41,7 +41,7 @@ def urls_get():
     return render_template(
         'urls.html',
         data=urls
-        )
+    )
 
 
 @app.post("/urls")
@@ -75,7 +75,7 @@ def url_page(id):
             name=name, id=id,
             created_at=created_at,
             data=checks
-            )
+        )
     else:
         return render_template('404.html')
 
