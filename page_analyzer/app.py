@@ -26,6 +26,7 @@ conn = psycopg2.connect(DATABASE_URL)
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
+
 @app.route("/")
 def index():
     return render_template(
@@ -84,7 +85,7 @@ def url_check(id):
     url = get_data_from_urls(id)[1]
     try:
         response = requests.get(url, allow_redirects=True)
-        if response is None or response.status_code != 200 or not response.text.strip():
+        if response is None or response.status_code != 200:
             flash("Произошла ошибка при проверке", category='danger')
             return redirect(url_for('url_page', id=id))
     except requests.exceptions.RequestException:
@@ -98,9 +99,10 @@ def url_check(id):
 
 def check_url_exists(url):
     sql = "select * from urls where name = %s;"
-    with conn.cursor() as cur:
-        cur.execute(sql, (url,))
-        return cur.fetchone() is None
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, (url,))
+            return cur.fetchone() is None
 
 
 def insert_url_in_urls(url):
@@ -117,9 +119,10 @@ def insert_url_in_urls(url):
 
 def get_data_from_urls(id):
     sql = "select id, name, created_at::date from urls where id = %s;"
-    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
-        cur.execute(sql, (id,))
-        return cur.fetchone()
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
+            cur.execute(sql, (id,))
+            return cur.fetchone()
 
 
 def get_list_of_urls():
@@ -140,9 +143,10 @@ def get_list_of_urls():
 
 def find_id_by_url(name):
     sql = "select id from urls where name = %s;"
-    with conn.cursor() as cur:
-        cur.execute(sql, (name,))
-        return cur.fetchone()[0]
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, (name,))
+            return cur.fetchone()[0]
 
 
 def get_data_from_url_checks(id):
