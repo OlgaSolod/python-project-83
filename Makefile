@@ -14,4 +14,4 @@ start:
 lint:
 	poetry run flake8 page_analyzer
 
-.PHONY: install dev start lint
+.PHONY: install build dev start lint
