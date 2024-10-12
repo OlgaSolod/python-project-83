@@ -12,6 +12,8 @@ import os
 from dotenv import load_dotenv
 from validators import url as validate_url
 from urllib.parse import urlparse
+import requests
+from bs4 import BeautifulSoup
 
 
 app = Flask(__name__)
@@ -31,8 +33,7 @@ def index():
 
 @app.get("/urls")
 def urls_get():
-    urls = get_all_from_urls()
-    print(urls)
+    urls = get_list_of_urls()
     return render_template(
         'urls.html',
         data=urls
@@ -46,13 +47,13 @@ def urls_post():
         scheme = urlparse(actual_url).scheme
         hostname = urlparse(actual_url).hostname
         url = f"{scheme}://{hostname}"
-        if check_url_in_urls(url):
+        if check_url_exists(url):
             url_id = insert_url_in_urls(url)
             flash("Страница успешно добавлена", category='success')
             return redirect(url_for('url_page', id=url_id))
         else:
             flash("Страница уже существует", category='info')
-            url_id = find_id_in_urls(url)
+            url_id = find_id_by_url(url)
             return redirect(url_for('url_page', id=url_id))
     elif not validate_url(actual_url) or len(actual_url) > 255:
         flash("Некорректный URL", category='danger')
@@ -62,7 +63,7 @@ def urls_post():
 @app.get('/urls/<int:id>')
 def url_page(id):
     page = get_data_from_urls(id)
-    checks = find_data_from_url_checks(id)
+    checks = get_data_from_url_checks(id)
     if page:
         id, name, created_at = page
         return render_template(
@@ -77,18 +78,18 @@ def url_page(id):
 
 @app.post('/urls/<int:id>/checks')
 def url_check(id):
-    get_url_id_from_url_checks(id)
+    url = get_data_from_urls(id)[1]
+    try:
+        response = requests.get(url, allow_redirects=True)
+    except requests.exceptions.RequestException:
+        flash("Произошла ошибка при проверке", category='danger')
+        return redirect(url_for('url_page', id=id))
+    status_code, header, title, description = parse_page(response)
+    insert_data_into_url_checks(id, status_code, header, title, description)
     return redirect(url_for('url_page', id=id))
 
 
-def get_url_id_from_url_checks(id):
-    sql = 'insert into url_checks (url_id) values (%s);'
-    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
-        cur.execute(sql, (id,))
-        conn.commit()
-
-
-def check_url_in_urls(url):
+def check_url_exists(url):
     sql = "select * from urls where name = %s;"
     with conn.cursor() as cur:
         cur.execute(sql, (url,))
@@ -113,30 +114,55 @@ def get_data_from_urls(id):
         return cur.fetchone()
 
 
-def get_all_from_urls():
-    sql = '''select distinct
+def get_list_of_urls():
+    sql = '''select distinct on (urls.id)
                 urls.id,
-                (urls.name),
+                urls.name,
                 checks.created_at::date,
                 checks.status_code
             from urls
             left join url_checks as checks on urls.id = checks.url_id
-            order by checks.created_at::date desc;
+            order by urls.id, checks.created_at::date desc;
             '''
     with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
         cur.execute(sql)
         return cur.fetchall()
 
 
-def find_id_in_urls(name):
+def find_id_by_url(name):
     sql = "select id from urls where name = %s;"
     with conn.cursor() as cur:
         cur.execute(sql, (name,))
         return cur.fetchone()[0]
 
 
-def find_data_from_url_checks(id):
-    sql = "select id, created_at::date from url_checks where url_id = %s;"
+def get_data_from_url_checks(id):
+    sql = '''
+        select id, status_code, h1, title, description, created_at::date
+        from url_checks
+        where url_id = %s
+        order by created_at desc;
+    '''
     with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
         cur.execute(sql, (id,))
         return cur.fetchall()
+
+
+def parse_page(response):
+    status_code = response.status_code
+    bs = BeautifulSoup(response.text, 'html.parser')
+    title = bs.find('title').text
+    description = bs.find('meta', {'name': 'description'}).get('content')
+    header = bs.find('h1').text
+    return status_code, header, title, description
+
+
+def insert_data_into_url_checks(id, status_code, h1, title, description):
+    sql_urls = '''
+               insert into url_checks
+               (url_id, status_code, h1, title, description)
+               values (%s, %s, %s, %s, %s)
+               '''
+    with conn.cursor() as cur:
+        cur.execute(sql_urls, (id, status_code, h1, title, description))
+        conn.commit()
