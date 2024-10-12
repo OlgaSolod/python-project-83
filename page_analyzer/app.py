@@ -93,6 +93,7 @@ def check_url_exists(url):
     sql = "select * from urls where name = %s;"
     with conn.cursor() as cur:
         cur.execute(sql, (url,))
+        conn.close()
         return cur.fetchone() is None
 
 
@@ -104,6 +105,7 @@ def insert_url_in_urls(url):
         cur.execute(sql, (url,))
         url_id = cur.fetchone()[0]
         conn.commit()
+        conn.close()
     return url_id
 
 
@@ -111,6 +113,7 @@ def get_data_from_urls(id):
     sql = "select id, name, created_at::date from urls where id = %s;"
     with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
         cur.execute(sql, (id,))
+        conn.close()
         return cur.fetchone()
 
 
@@ -126,6 +129,7 @@ def get_list_of_urls():
             '''
     with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
         cur.execute(sql)
+        conn.close()
         return cur.fetchall()
 
 
@@ -133,6 +137,7 @@ def find_id_by_url(name):
     sql = "select id from urls where name = %s;"
     with conn.cursor() as cur:
         cur.execute(sql, (name,))
+        conn.close()
         return cur.fetchone()[0]
 
 
@@ -145,6 +150,7 @@ def get_data_from_url_checks(id):
     '''
     with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
         cur.execute(sql, (id,))
+        conn.close()
         return cur.fetchall()
 
 
@@ -166,3 +172,4 @@ def insert_data_into_url_checks(id, status_code, h1, title, description):
     with conn.cursor() as cur:
         cur.execute(sql_urls, (id, status_code, h1, title, description))
         conn.commit()
+        conn.close()
